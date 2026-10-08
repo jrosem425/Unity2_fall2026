@@ -8,13 +8,18 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed = 5f;
     public float jumpHeight = 1.5f;
     public float gravity = -9.8f;
-
+    public float rotationSmoothTime = 0.1f;
 
 
     [Header("Ground Check")]
     public Transform groundCheck;
     public float groundDistance;
     public LayerMask groundMask;
+
+
+    [Header("References")]
+    public Transform cameraTransform;
+
 
 
 
@@ -27,11 +32,21 @@ public class PlayerController : MonoBehaviour
     bool _isJumping;
     float _jumpCooldown = 0f;
     bool _jumpPressed;
+    float _rotationVelocity;
 
 
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
+        
+        //Auto find the camera if not assigned
+        if(cameraTransform == null && Camera.main != null)
+        {
+            cameraTransform = Camera.main.transform;
+
+
+
+        }
     }
 
     //set up inputs via messaging
@@ -67,7 +82,16 @@ public class PlayerController : MonoBehaviour
         }
 
         float speed = moveSpeed;
-        Vector3 moveDir = new Vector3(_moveInput.x, 0f, _moveInput.y);
+
+        //Camera related directionsal rotation
+        float targetAngle = Mathf.Atan2(_moveInput.x, _moveInput.y) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
+
+        //Smoothed rotation towards movement direction
+        float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref _rotationVelocity, rotationSmoothTime);
+        transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
+
+
+        Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;   //originial: new Vector3(_moveInput.x, 0f, _moveInput.y);
         _characterController.Move(moveDir.normalized * speed * Time.deltaTime);
     }
 
